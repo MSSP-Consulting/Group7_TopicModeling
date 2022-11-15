@@ -16,6 +16,7 @@ library(topicmodels)
 library(tm)
 ```
 
+### Data Input
 ```{r}
 IMDB.Dataset <- read_csv("IMDB Dataset.csv", show_col_types = F)
 IMDB <- tibble(IMDB.Dataset)
@@ -23,12 +24,11 @@ IMDB <- tibble(IMDB.Dataset)
 IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 
 data(stop_words)
-stop_words <- rbind(stop_words,c("br" ))
+stop_words <- rbind(stop_words,c("br","movie","film" ))
 ```
 
-
+### tf-idf
 ```{r}
-##tf-idf
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
@@ -51,9 +51,8 @@ book_tf_idf <- book_words %>%
 
 
 ```
-
+### LDA
 ```{r}
-###  LDA
 imdb_dtm <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
@@ -77,6 +76,6 @@ ap_top_terms %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   scale_y_reordered()
-###
+
 ```
 
