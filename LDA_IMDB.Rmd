@@ -14,6 +14,7 @@ library(stringr)
 library(ggplot2)
 library(topicmodels)
 library(tm)
+library(reshape2)
 ```
 
 ### Data Input
@@ -24,7 +25,7 @@ IMDB <- tibble(IMDB.Dataset)
 IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 
 data(stop_words)
-stop_words <- rbind(stop_words,c("br","movie","film" ))
+stop_words <- rbind(stop_words,c("br",NA),c("movie",NA),c("movies",NA),c("film",NA))
 ```
 
 ### tf-idf
@@ -51,6 +52,22 @@ book_tf_idf <- book_words %>%
 
 
 ```
+
+### Words Network
+```{r}
+set.seed(1234)
+book_words %>%
+  filter(n >= 250) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "cyan4") +
+  geom_node_point(size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.2, "lines")) +
+  theme_void()
+```
+
+
 ### LDA
 ```{r}
 imdb_dtm <- IMDB %>%
@@ -60,7 +77,7 @@ imdb_dtm <- IMDB %>%
   cast_dtm(docs, word, n)
 
 
-ap_lda <- LDA(imdb_dtm, k = 20, control = list(seed = 1234))
+ap_lda <- LDA(imdb_dtm, k = 12, control = list(seed = 1234))
 
 ap_topics <- tidy(ap_lda, matrix = "beta")
 
