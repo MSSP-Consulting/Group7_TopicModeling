@@ -85,6 +85,22 @@ review_words_pair %>%
   theme_void()
 ```
 
+```{r}
+set.seed(2000)
+
+review_words_pair <- book_words %>% 
+  pairwise_count(word, docs, sort = TRUE, upper = FALSE)
+review_words_pair %>%
+  filter(n >= 3000) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "red") +
+  geom_node_point(size = 4) +
+  geom_node_text(aes(label = name), repel = TRUE, 
+                 point.padding = unit(0.3, "lines")) +
+  theme_void()
+```
+
 ### Word Cloud
 ```{r}
 set.seed(1234)
@@ -102,22 +118,36 @@ imdb_dtm <- IMDB %>%
   cast_dtm(docs, word, n)
 
 
-ap_lda <- LDA(imdb_dtm, k = 12, control = list(seed = 1234))
+review_lda <- LDA(imdb_dtm, k = 12, control = list(seed = 1234))
 
-ap_topics <- tidy(ap_lda, matrix = "beta")
-
-ap_top_terms <- ap_topics %>%
+tidy_lda <- tidy(review_lda, matrix = "beta")
+top_terms <- tidy_lda %>%
   group_by(topic) %>%
-  slice_max(beta, n = 10) %>% 
+  slice_max(beta, n = 10, with_ties = FALSE) %>%
   ungroup() %>%
   arrange(topic, -beta)
 
-ap_top_terms %>%
+top_terms
+
+top_terms %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
+  group_by(topic, term) %>%    
+  arrange(desc(beta)) %>%  
+  ungroup() %>%
+  ggplot(aes(beta, term, fill = as.factor(topic))) +
   geom_col(show.legend = FALSE) +
-  facet_wrap(~ topic, scales = "free") +
-  scale_y_reordered()
+  scale_y_reordered() +
+  labs(title = "Top 10 terms in each LDA topic",
+       x = expression(beta), y = NULL) +
+  facet_wrap(~ topic, ncol = 4, scales = "free")
+
+
+beta_wide <- ap_topics %>%
+  mutate(topic = paste0("topic", topic)) %>%
+  pivot_wider(names_from = topic, values_from = beta) %>% 
+  filter(topic1 > .001 | topic2 > .001) %>%
+  mutate(log_ratio = log2(topic2 / topic1))
+beta_wide
+
 
 ```
-
