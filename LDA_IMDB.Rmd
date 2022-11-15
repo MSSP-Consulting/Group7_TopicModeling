@@ -42,6 +42,14 @@ book_words <- IMDB %>%
   anti_join(stop_words)%>%
   count(docs, word, sort = TRUE)
 
+text_df <- IMDB %>%
+  unnest_tokens(word, review) %>%
+  anti_join(stop_words) %>%
+  count(word, sort = TRUE)
+
+
+
+
 total_words <- book_words %>% 
   group_by(docs) %>% 
   summarize(total = sum(n))
@@ -79,7 +87,8 @@ review_words_pair %>%
 
 ### Word Cloud
 ```{r}
-wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+set.seed(1234)
+wordcloud(words = text_df$word, freq = text_df$n, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35, colors=brewer.pal(8, "Dark2"))
 ```
 
 
