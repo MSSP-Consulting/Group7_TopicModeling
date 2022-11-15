@@ -19,6 +19,9 @@ library(widyr)
 library(dplyr)
 library(igraph)
 library(ggraph)
+library(wordcloud)
+library(wordcloud2)
+library(RColorBrewer)
 ```
 
 ### Data Input
@@ -73,6 +76,12 @@ review_words_pair %>%
                  point.padding = unit(0.2, "lines")) +
   theme_void()
 ```
+
+### Word Cloud
+```{r}
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
 
 
 ### LDA
