@@ -1,12 +1,13 @@
 ---
-title: "fidelity LDA"
+title: "Topic Modeling Report"
 author: "Group 7"
 date: "2022-11-12"
-output: html_document
+output:
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
 library(tidyverse)
 library(tidytext)
 library(janeaustenr)
@@ -24,19 +25,23 @@ library(wordcloud2)
 library(RColorBrewer)
 ```
 
-### Data Input
+  We use IMDB reviews as our data and do the following anylsis. First, we set up three stop words, movie, movies and film, since these three words appear most frequently and do not make much sense in movie reviews. Then, we use $unnest_tokens()$ function to both break the text into individual tokens and transform it to a tidy data structure.
+
 ```{r}
+#data input.
 IMDB.Dataset <- read_csv("IMDB Dataset.csv", show_col_types = F)
 IMDB <- tibble(IMDB.Dataset)
 
 IMDB <- IMDB  %>%  mutate(docs = c(1:length(IMDB$review)))
 
+#set stop words
 data(stop_words)
 stop_words <- rbind(stop_words,c("br",NA),c("movie",NA),c("movies",NA),c("film",NA))
 ```
+  Afterwards, we look at the terms' inverse document frequency to measure if a word is important in our analysis. As a result, considering both the number of occurrences and term frequency(n/total), we have top 5 terms, 'trivialboring', 'mad', 'stop.oz', 'bad', and 'bought'. Three of them are negative, so that we may conclude that there are more negative review than the positive. In order to prove it, we further draw some plots.
 
-### tf-idf
 ```{r}
+#tf-idf
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
@@ -46,9 +51,6 @@ text_df <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words) %>%
   count(word, sort = TRUE)
-
-
-
 
 total_words <- book_words %>% 
   group_by(docs) %>% 
@@ -65,11 +67,19 @@ freq_by_rank <- book_words %>%
 book_tf_idf <- book_words %>%
   bind_tf_idf(word, docs, n)
 
-
+```
+```{r}
+fre<-freq_by_rank%>%arrange(desc(`term frequency`))
 ```
 
-### Words Network
+
+Here, we draw a plot showing how words correlate to each other. We filter the words by saying that the total number of occurrence is larger than 2200 and get 26 words, which is centered around 'time', 'story', 'bad' and 'people'.
+
+
+
+
 ```{r}
+#Words Network
 set.seed(1234)
 
 review_words_pair <- book_words %>% 
@@ -83,32 +93,25 @@ review_words_pair %>%
   geom_node_text(aes(label = name), repel = TRUE, 
                  point.padding = unit(0.2, "lines")) +
   theme_void()
-
-set.seed(2000)
-
-review_words_pair <- book_words %>% 
-  pairwise_count(word, docs, sort = TRUE, upper = FALSE)
-review_words_pair %>%
-  filter(n >= 3000) %>%
-  graph_from_data_frame() %>%
-  ggraph(layout = "fr") +
-  geom_edge_link(aes(edge_alpha = n, edge_width = n), edge_colour = "red") +
-  geom_node_point(size = 4) +
-  geom_node_text(aes(label = name), repel = TRUE, 
-                 point.padding = unit(0.3, "lines")) +
-  theme_void()
 ```
 
-### Word Cloud
+
+
+
+
+
+Another plot shows how often these words show up in the review. The larger the word, the more often it appears. Obviously, 'time' and 'story' are the two most frequent occurrences, followed by 'bad' and 'people', and then 'love', 'films', etc..
+
 ```{r}
+#Word Cloud
 set.seed(1234)
 wordcloud(words = text_df$word, freq = text_df$n, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35, colors=brewer.pal(8, "Dark2"))
 ```
 
 
-
-### LDA
+Finally, we use LDA model to find 12 topics that are extracted from the review. The most common words in topic 1 include "bad", "watch","10", and "original", which suggests it may represent literary film. Those most common in topic 2 include "makes", "acting", "funny", and "real", suggesting that this topic represents comedy or action movie. When analyze these topic, we tend to ignore the words that appears in every topic including "story", "character", and "scene".
 ```{r}
+#LDA
 imdb_dtm <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
@@ -124,9 +127,8 @@ top_terms <- tidy_lda %>%
   slice_max(beta, n = 10, with_ties = FALSE) %>%
   ungroup() %>%
   arrange(topic, -beta)
-
-top_terms
-
+```
+```{r}
 top_terms %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   group_by(topic, term) %>%    
@@ -137,15 +139,7 @@ top_terms %>%
   scale_y_reordered() +
   labs(title = "Top 10 terms in each LDA topic",
        x = expression(beta), y = NULL) +
-  facet_wrap(~ topic, ncol = 4, scales = "free")
-
-
-beta_wide <- ap_topics %>%
-  mutate(topic = paste0("topic", topic)) %>%
-  pivot_wider(names_from = topic, values_from = beta) %>% 
-  filter(topic1 > .001 | topic2 > .001) %>%
-  mutate(log_ratio = log2(topic2 / topic1))
-beta_wide
-
-
+  facet_wrap(~ topic, ncol = 4.6, scales = "free")+
+  theme(axis.text.x = element_text(size=5),axis.text.y = element_text(size=5))
 ```
+
