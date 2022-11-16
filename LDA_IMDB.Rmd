@@ -23,6 +23,7 @@ library(ggraph)
 library(wordcloud)
 library(wordcloud2)
 library(RColorBrewer)
+library(textstem)
 ```
 
   We use IMDB reviews as our data and do the following anylsis. First, we set up three stop words, movie, movies and film, since these three words appear most frequently and do not make much sense in movie reviews. Then, we use $unnest_tokens()$ function to both break the text into individual tokens and transform it to a tidy data structure.
@@ -45,12 +46,14 @@ stop_words <- rbind(stop_words,c("br",NA),c("movie",NA),c("movies",NA),c("film",
 book_words <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words)%>%
-  count(docs, word, sort = TRUE)
+  count(docs, word, sort = TRUE)%>% 
+  mutate(word = word%>% 
+           lemmatize_words())
 
 text_df <- IMDB %>%
   unnest_tokens(word, review) %>%
   anti_join(stop_words) %>%
-  count(word, sort = TRUE)
+  count(word, sort = TRUE)%>% mutate(word = word%>% lemmatize_words())
 
 total_words <- book_words %>% 
   group_by(docs) %>% 
